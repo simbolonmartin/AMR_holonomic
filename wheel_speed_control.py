@@ -191,5 +191,4 @@ if __name__ == "__main__":
     handle.vw_to_wheel_rpm(2, 0.2)
     handle.send_speed()
     handle.read_character()
-
     print("Finished")

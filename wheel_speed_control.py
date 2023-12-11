@@ -1,11 +1,15 @@
-import serial
+# import serial
 import struct
 import time
 import sys
 import math
 
-from std_msgs.msg import Float64
-from geometry_msgs.msg import Twist
+# from std_msgs.msg import Float64
+# from geometry_msgs.msg import Twist
+import readchar
+from readchar import readkey, key
+
+
 
 
 class MotorCommunication():
@@ -65,6 +69,15 @@ class MotorCommunication():
         time.sleep(5) 
  
     def set_speed(self, id, speed):
+        """_summary_
+
+        Args:
+            id (_type_): the id of the motor driver or wheel (1-4)
+            speed (_type_): The speed of the wheel in rpm
+
+        Returns:
+            _type_: message that will be sent to the motor driver
+        """
         id_byte = self.id_to_byte(id)
         speed_byte = self.speed_to_byte_command(speed)
         message_before_speed = [0x10, 0x00, 0x5A, 0x00, 0x0E, 0x1C, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x00,
@@ -78,7 +91,6 @@ class MotorCommunication():
 
     def calculate_modbus_crc(self, data):
         crc = 0xFFFF  # Initial value for Modbus CRC
-
         for byte in data:
             crc ^= byte
             for _ in range(8):
@@ -95,6 +107,7 @@ class MotorCommunication():
         return list(int.to_bytes(id, 1, "big", signed=True))
 
     def speed_to_byte_command(self, speed):
+        speed = int(speed)
         return list(int.to_bytes(speed, 2, 'big', signed=True))
 
     def stop_operation(self):
@@ -104,7 +117,6 @@ class MotorCommunication():
         print("stop")
         res = self.ser.write(stop)
         time.sleep(3)       
-    
 
     def read_response(self, numberOfBit=8):
         response = self.ser.read(numberOfBit)
@@ -130,7 +142,12 @@ class MotorCommunication():
         return crc.to_bytes(2, byteorder='big')
     
     def vw_to_wheel_rpm(self, velocity, rotation_speed):
-        
+        """_summary_
+
+        Args:
+            velocity: in m/s
+            rotation_speed: in rad/s
+        """
         v_x = velocity * math.cos(math.pi/4)
         v_y = velocity * math.sin(math.pi/4)
 
@@ -145,12 +162,34 @@ class MotorCommunication():
         w_wheel_4_rpm = (v_wheel_4 * 30) / (math.pi * self.WHEEL_RADIUS)
 
         self.w_wheel =  [w_wheel_1_rpm, w_wheel_2_rpm, w_wheel_3_rpm, w_wheel_4_rpm]
+        
+    def send_speed(self):
+        for id in range(4):
+            message = self.set_speed(id+1, self.w_wheel[id])
+            print(message) #TODO: change this to sending serial method
+
+    def read_character(self):
+        while True:
+            keyPressed = readkey()
+            if keyPressed == "a":
+                print("It is an a")
+                # do stuff
+            if keyPressed == key.UP:
+                print("move forward")
+            if keyPressed == key.DOWN:
+                print("move backward")
+            if keyPressed == key.ENTER:
+                break
 
     
 if __name__ == "__main__":
     handle = MotorCommunication()
-    handle.check_conn()
-    handle.initialize_driver()
-    handle.test_send_speed()
-    handle.stop_operation()
+    # handle.check_conn()
+    # handle.initialize_driver()
+    # handle.test_send_speed()
+    # handle.stop_operation()
+    handle.vw_to_wheel_rpm(2, 0.2)
+    handle.send_speed()
+    handle.read_character()
+
     print("Finished")

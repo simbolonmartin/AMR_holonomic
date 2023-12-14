@@ -139,8 +139,7 @@ class MotorCommunication():
         """
         id_byte = self.id_to_byte(id)
         speed_byte = self.speed_to_byte_command(speed)
-        message_before_speed = [0x10, 0x00, 0x5A, 0x00, 0x0E, 0x1C, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00]
+        message_before_speed = [0x10, 0x00, 0x5A, 0x00, 0x0E, 0x1C, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x00]
         message_after_speed = [0x00, 0x00, 0x03, 0xE8, 0x00, 0x00, 0x09, 0xC4, 0x00, 0x00, 0x03,
                         0xE8, 0x00, 0x00, 0x00, 0x01]
         pre_CRC = id_byte + message_before_speed + speed_byte + message_after_speed
@@ -167,7 +166,7 @@ class MotorCommunication():
 
     def speed_to_byte_command(self, speed):
         speed = int(speed)
-        return list(int.to_bytes(speed, 2, 'big', signed=True))
+        return list(int.to_bytes(speed, 4, 'big', signed=True))
 
     def stop_operation(self):
         stop = [0x01, 0x10, 0x00, 0x5A, 0x00, 0x0E, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -250,46 +249,101 @@ class MotorCommunication():
         w_wheel_3_rpm = (v_wheel_3 * 30) / (math.pi * self.WHEEL_RADIUS)
         w_wheel_4_rpm = (v_wheel_4 * 30) / (math.pi * self.WHEEL_RADIUS)
 
+        w_wheel_1_rpm = int(w_wheel_1_rpm)
+        w_wheel_2_rpm = int(w_wheel_2_rpm)
+        w_wheel_3_rpm = int(w_wheel_3_rpm)
+        w_wheel_4_rpm = int(w_wheel_4_rpm)
+
+
         self.w_wheel =  [w_wheel_1_rpm, w_wheel_2_rpm, w_wheel_3_rpm, w_wheel_4_rpm]
-        ...
+        # self.w_wheel =  [500, 500, 500, 500]
+
+        
 
     def send_speed(self):
         for id in range(4):
+            # print(f"{id+1} {self.w_wheel[id]}")
             message = self.set_speed(id+1, self.w_wheel[id])
-            # res = self.ser.write(message)
-            time.sleep(0.01)
-            print(message) 
+            res = self.ser.write(message)
+            # self.ser.flush()
+            time.sleep(0.1)
+            # print(message) 
 
     def read_character(self):
         while True:
             keyPressed = readkey()
-            if keyPressed == "a":
-                print("It is an a")
-            if keyPressed == key.UP:
+            if keyPressed == key.UP or keyPressed == "w" or keyPressed == "W":
                 print("move forward")
-            elif keyPressed == key.DOWN:
+                handle.vx_vy_w_to_wheel_rpm(10, 0, 0)
+                # print(handle.w_wheel)
+                handle.send_speed()
+                time.sleep(0.1)
+            elif keyPressed == key.DOWN or keyPressed == "s" or keyPressed == "S" :
                 print("move backward")
-            elif keyPressed == key.LEFT:
+                handle.vx_vy_w_to_wheel_rpm(-10, 0, 0)
+                # print(handle.w_wheel)
+                handle.send_speed()
+                time.sleep(0.1)
+            elif keyPressed == key.LEFT or keyPressed == "a" or keyPressed == "A":
                 print("move to the left")
-            elif keyPressed == key.RIGHT:
+                handle.vx_vy_w_to_wheel_rpm(0, 10, 0)
+                # print(handle.w_wheel)
+                handle.send_speed()
+                time.sleep(0.1)
+            elif keyPressed == key.RIGHT or keyPressed == "d" or keyPressed == "D":
                 print("move to the right")
+                handle.vx_vy_w_to_wheel_rpm(0, -10, 0)
+                # print(handle.w_wheel)
+                handle.send_speed()
+                time.sleep(0.1)
+            elif keyPressed == "q" or keyPressed == "Q":
+                print("Rotate Counter Clockwise (CCW)")
+                handle.vx_vy_w_to_wheel_rpm(0, 0, 10)
+                # print(handle.w_wheel)
+                handle.send_speed()
+                time.sleep(0.1)
+            elif keyPressed == "e" or keyPressed == "E":
+                print("Rotate clockwise (CW)")
+                handle.vx_vy_w_to_wheel_rpm(0, 0, -10)
+                # print(handle.w_wheel)
+                handle.send_speed()
+                time.sleep(0.1)
+            elif keyPressed == "r" or keyPressed == "R":
+                print("Stopping")
+                handle.stop_operation()
             elif keyPressed == key.ENTER:
                 break
 
-    
 if __name__ == "__main__":
     handle = MotorCommunication()
-    # handle.check_conn()
-    # handle.initialize_driver()
-    # handle.vw_to_wheel_rpm(1, 0.0)
-    handle.vx_vy_w_to_wheel_rpm(0, 0, 0)
+    handle.check_conn()
+    handle.initialize_driver()
+    
+    #forward
+    # handle.vx_vy_w_to_wheel_rpm(10, 0, 0)
+    # print(handle.w_wheel)
+    # handle.send_speed()
 
-    print(handle.w_wheel)
-    handle.send_speed()
+    # # reverse
+    # time.sleep(0.1)
+    # handle.vx_vy_w_to_wheel_rpm(-10, 0, 0)
+    # print(handle.w_wheel)
+    # handle.send_speed()
+
     # message = handle.set_speed(4, 1000)
     # handle.show_message_in_hex(message)
     # handle.test_send_speed()
     # handle.send_speed()
     # handle.read_character()
-    # handle.stop_operation()
-    print("Finished")
+
+
+    #test negative speed
+    # message = handle.set_speed(1, 100)
+    # res = handle.ser.write(message)
+    try:
+        handle.read_character()
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt detected")
+    finally:
+        handle.stop_operation()
+

@@ -3,17 +3,15 @@ import struct
 import time
 import sys
 import math
-# 
-# from std_msgs.msg import Float64
-# from geometry_msgs.msg import Twist
+import rospy
+
+from std_msgs.msg import Float64
+from geometry_msgs.msg import Twist
 from readchar import readkey, key
-
-
-
 
 class MotorCommunication():
     def __init__(self) -> None:
-        self.modem_device = "/dev/ttyUSB0"
+        self.modem_device = "/dev/ttyUSB1"
         self.baud_rate = 9600
         self.timex = 3
         self.ser = None
@@ -237,6 +235,7 @@ class MotorCommunication():
         self.w_wheel =  [w_wheel_1_rpm, w_wheel_2_rpm, w_wheel_3_rpm, w_wheel_4_rpm]
         
     def vx_vy_w_to_wheel_rpm(self, vx, vy, rotation_speed):
+        gear_reduction = 50
         alpha = math.pi/4 #offset between vx axis and wheel 
 
         v_wheel_1 = -math.sin(alpha - math.pi/2) * vx + math.cos(alpha - math.pi/2) * vy + self.ROBOT_RADIUS * rotation_speed
@@ -244,10 +243,10 @@ class MotorCommunication():
         v_wheel_3 = -math.sin(alpha + math.pi/2) * vx + math.cos(alpha + math.pi/2) * vy + self.ROBOT_RADIUS * rotation_speed
         v_wheel_4 = -math.sin(alpha ) * vx + math.cos(alpha) * vy + self.ROBOT_RADIUS * rotation_speed
         
-        w_wheel_1_rpm = (v_wheel_1 * 30) / (math.pi * self.WHEEL_RADIUS)
-        w_wheel_2_rpm = (v_wheel_2 * 30) / (math.pi * self.WHEEL_RADIUS)
-        w_wheel_3_rpm = (v_wheel_3 * 30) / (math.pi * self.WHEEL_RADIUS)
-        w_wheel_4_rpm = (v_wheel_4 * 30) / (math.pi * self.WHEEL_RADIUS)
+        w_wheel_1_rpm = (v_wheel_1 * 30) / (math.pi * self.WHEEL_RADIUS) / gear_reduction
+        w_wheel_2_rpm = (v_wheel_2 * 30) / (math.pi * self.WHEEL_RADIUS) / gear_reduction
+        w_wheel_3_rpm = (v_wheel_3 * 30) / (math.pi * self.WHEEL_RADIUS) / gear_reduction
+        w_wheel_4_rpm = (v_wheel_4 * 30) / (math.pi * self.WHEEL_RADIUS) / gear_reduction
 
         w_wheel_1_rpm = int(w_wheel_1_rpm)
         w_wheel_2_rpm = int(w_wheel_2_rpm)
@@ -274,9 +273,9 @@ class MotorCommunication():
             keyPressed = readkey()
             if keyPressed == key.UP or keyPressed == "w" or keyPressed == "W":
                 print("move forward")
-                handle.vx_vy_w_to_wheel_rpm(10, 0, 0)
+                self.vx_vy_w_to_wheel_rpm(10, 0, 0)
                 # print(handle.w_wheel)
-                handle.send_speed()
+                self.send_speed()
                 time.sleep(0.1)
             elif keyPressed == key.DOWN or keyPressed == "s" or keyPressed == "S" :
                 print("move backward")
@@ -313,16 +312,22 @@ class MotorCommunication():
                 handle.stop_operation()
             elif keyPressed == key.ENTER:
                 break
+    
+    def ros_node_subscriber_callbak_send_speed(self, data:Twist):
+        self.vx_vy_w_to_wheel_rpm(data.linear.x, data.linear.y, data.angular.z)
+        self.send_speed()
 
 if __name__ == "__main__":
     handle = MotorCommunication()
     handle.check_conn()
     handle.initialize_driver()
+    rospy.init_node("motor_node", anonymous=True)
+    pub = rospy.Subscriber("/cmd_vel", Twist, handle.ros_node_subscriber_callbak_send_speed)
     
     #forward
     # handle.vx_vy_w_to_wheel_rpm(10, 0, 0)
     # print(handle.w_wheel)
-    # handle.send_speed()
+    # handle.send_speed()-
 
     # # reverse
     # time.sleep(0.1)

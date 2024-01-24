@@ -323,7 +323,9 @@ if __name__ == "__main__":
     handle.initialize_driver()
     rospy.init_node("motor_node", anonymous=True)
     pub = rospy.Subscriber("/cmd_vel", Twist, handle.ros_node_subscriber_callbak_send_speed)
-    
+    rospy.Rate(10)
+    rospy.spin()
+
     #forward
     # handle.vx_vy_w_to_wheel_rpm(10, 0, 0)
     # print(handle.w_wheel)
@@ -345,10 +347,12 @@ if __name__ == "__main__":
     #test negative speed
     # message = handle.set_speed(1, 100)
     # res = handle.ser.write(message)
-    try:
-        handle.read_character()
-    except KeyboardInterrupt:
-        print("KeyboardInterrupt detected")
-    finally:
-        handle.stop_operation()
+
+    # with own setting keyboard
+    # try:
+    #     handle.read_character()
+    # except KeyboardInterrupt:
+    #     print("KeyboardInterrupt detected")
+    # finally:
+    #     handle.stop_operation()
 

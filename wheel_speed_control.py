@@ -243,10 +243,10 @@ class MotorCommunication():
         v_wheel_3 = -math.sin(alpha + math.pi/2) * vx + math.cos(alpha + math.pi/2) * vy + self.ROBOT_RADIUS * rotation_speed
         v_wheel_4 = -math.sin(alpha ) * vx + math.cos(alpha) * vy + self.ROBOT_RADIUS * rotation_speed
         
-        w_wheel_1_rpm = (v_wheel_1 * 30) / (math.pi * self.WHEEL_RADIUS) / gear_reduction
-        w_wheel_2_rpm = (v_wheel_2 * 30) / (math.pi * self.WHEEL_RADIUS) / gear_reduction
-        w_wheel_3_rpm = (v_wheel_3 * 30) / (math.pi * self.WHEEL_RADIUS) / gear_reduction
-        w_wheel_4_rpm = (v_wheel_4 * 30) / (math.pi * self.WHEEL_RADIUS) / gear_reduction
+        w_wheel_1_rpm = (v_wheel_1 * 30) / (math.pi * self.WHEEL_RADIUS) * gear_reduction
+        w_wheel_2_rpm = (v_wheel_2 * 30) / (math.pi * self.WHEEL_RADIUS) * gear_reduction
+        w_wheel_3_rpm = (v_wheel_3 * 30) / (math.pi * self.WHEEL_RADIUS) * gear_reduction
+        w_wheel_4_rpm = (v_wheel_4 * 30) / (math.pi * self.WHEEL_RADIUS) * gear_reduction
 
         w_wheel_1_rpm = int(w_wheel_1_rpm)
         w_wheel_2_rpm = int(w_wheel_2_rpm)
@@ -273,37 +273,37 @@ class MotorCommunication():
             keyPressed = readkey()
             if keyPressed == key.UP or keyPressed == "w" or keyPressed == "W":
                 print("move forward")
-                self.vx_vy_w_to_wheel_rpm(10, 0, 0)
+                self.vx_vy_w_to_wheel_rpm(0.1, 0, 0)
                 # print(handle.w_wheel)
                 self.send_speed()
                 time.sleep(0.1)
             elif keyPressed == key.DOWN or keyPressed == "s" or keyPressed == "S" :
                 print("move backward")
-                handle.vx_vy_w_to_wheel_rpm(-10, 0, 0)
+                handle.vx_vy_w_to_wheel_rpm(-0.1, 0, 0)
                 # print(handle.w_wheel)
                 handle.send_speed()
                 time.sleep(0.1)
             elif keyPressed == key.LEFT or keyPressed == "a" or keyPressed == "A":
                 print("move to the left")
-                handle.vx_vy_w_to_wheel_rpm(0, 10, 0)
+                handle.vx_vy_w_to_wheel_rpm(0, 0.1, 0)
                 # print(handle.w_wheel)
                 handle.send_speed()
                 time.sleep(0.1)
             elif keyPressed == key.RIGHT or keyPressed == "d" or keyPressed == "D":
                 print("move to the right")
-                handle.vx_vy_w_to_wheel_rpm(0, -10, 0)
+                handle.vx_vy_w_to_wheel_rpm(0, -0.1, 0)
                 # print(handle.w_wheel)
                 handle.send_speed()
                 time.sleep(0.1)
             elif keyPressed == "q" or keyPressed == "Q":
                 print("Rotate Counter Clockwise (CCW)")
-                handle.vx_vy_w_to_wheel_rpm(0, 0, 10)
+                handle.vx_vy_w_to_wheel_rpm(0, 0, 0.1)
                 # print(handle.w_wheel)
                 handle.send_speed()
                 time.sleep(0.1)
             elif keyPressed == "e" or keyPressed == "E":
                 print("Rotate clockwise (CW)")
-                handle.vx_vy_w_to_wheel_rpm(0, 0, -10)
+                handle.vx_vy_w_to_wheel_rpm(0, 0, -0.1)
                 # print(handle.w_wheel)
                 handle.send_speed()
                 time.sleep(0.1)
@@ -315,12 +315,17 @@ class MotorCommunication():
     
     def ros_node_subscriber_callbak_send_speed(self, data:Twist):
         self.vx_vy_w_to_wheel_rpm(data.linear.x, data.linear.y, data.angular.z)
-        self.send_speed()
+        rospy.loginfo(f"vx = {data.linear.x} \t vy = {data.linear.y} \t w = {data.angular.z}")
+        rospy.loginfo(self.w_wheel)
+        # self.send_speed()
 
 if __name__ == "__main__":
     handle = MotorCommunication()
-    handle.check_conn()
-    handle.initialize_driver()
+    # handle.check_conn()
+    # handle.initialize_driver()
+    rospy.set_param("/teleop_initial_speed", 0.1)
+    rospy.set_param("/teleop_initial_turn", 0.1)
+
     rospy.init_node("motor_node", anonymous=True)
     pub = rospy.Subscriber("/cmd_vel", Twist, handle.ros_node_subscriber_callbak_send_speed)
     rospy.Rate(10)
